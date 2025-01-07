@@ -1404,6 +1404,7 @@ def eliminar_secretaria():
         cursor.close()
         db.close()
 
+
 # ================================ MENU DE CRUD GENERAL ================================
 def menu_general():
     while True:
@@ -1444,9 +1445,68 @@ def menu_general():
         else:
             print("Opción inválida. Intente de nuevo.")
 
+# Sistema de inicio de sesión
+def iniciar_sesion():
+    print("\n--- Inicio de Sesión ---")
+    nombre_completo = input("Ingrese su nombre completo: ")
+    cedula = input("Ingrese su cédula: ")
+
+    try:
+        db = conectar_bd()
+        cursor = db.cursor()
+
+        # Consulta para verificar si es Gerente Administrativo
+        cursor.execute("SELECT * FROM gerenteadm WHERE nomCompleto = %s AND cedula = %s", (nombre_completo, cedula))
+        gerente_adm = cursor.fetchone()
+
+        if gerente_adm:
+            print("\n¡Bienvenido - Logeo de Gerente Administrativo!")
+            menu_general()
+            return
+
+        # Consulta para verificar si es Gerente de Ventas
+        cursor.execute("SELECT * FROM gerenteventa WHERE nomCompleto = %s AND cedula = %s", (nombre_completo, cedula))
+        gerente_venta = cursor.fetchone()
+
+        if gerente_venta:
+            print("\n¡Bienvenido - Logeo de Gerente de Ventas!")
+            menu_general()
+            return
+
+        # Consulta para verificar si es Secretaria
+        cursor.execute("SELECT * FROM secretaria WHERE nomCompleto = %s AND cedula = %s", (nombre_completo, cedula))
+        secretaria = cursor.fetchone()
+
+        if secretaria:
+            print("\n¡Bienvenido - Logeo de Secretaria!")
+            menu_general()
+            return
+
+        # Si no se encontró en ninguna tabla
+        print("Nombre completo o cédula incorrectos. Intente de nuevo.")
+        
+    except mysql.connector.Error as e:
+        print(f"Error al conectar con la base de datos: {e}")
+    finally:
+        cursor.close()
+        db.close()
+
 # Ejecutar el menú principal
 if __name__ == "__main__":
-    menu_general()
+    while True:
+        iniciar_sesion()
+        print("\n¿Desea intentar iniciar sesión nuevamente?")
+        print("1. Sí")
+        print("2. No")
+        opcion = input("Seleccione una opción: ")
+
+        if opcion == "1":
+            continue  # Regresa al inicio de sesión
+        elif opcion == "2":
+            print("¡Hasta luego!")
+            break  # Sale del programa
+        else:
+            print("Opción inválida. Por favor, seleccione 1 o 2.")
     
 
 
