@@ -402,3 +402,32 @@ BEGIN
     END IF;
 END //
 DELIMITER ;
+
+CREATE USER 'admin' IDENTIFIED BY 'admin1234';
+CREATE USER 'jperez' IDENTIFIED BY 'pass1234';
+CREATE USER 'mreyes' IDENTIFIED BY 'contra1234';
+CREATE USER 'ramp' IDENTIFIED BY 'empleo1234';
+CREATE USER 'vnunez' IDENTIFIED BY 'datos1234';
+
+
+
+GRANT SELECT ON reporte_pedidos_clientes TO 'jperez';
+GRANT EXECUTE ON PROCEDURE sp_insertar_pedido TO 'jperez';
+
+GRANT SELECT ON reporte_ordenes_proveedores TO 'mreyes';
+GRANT EXECUTE ON PROCEDURE sp_actualizar_producto TO 'mreyes';
+
+GRANT SELECT ON reporte_recordatorios_secretarias TO 'ramp';
+GRANT SELECT ON reporte_productos_stock TO 'ramp';
+
+GRANT SELECT ON reporte_productos_stock TO 'vnunez';
+GRANT EXECUTE ON PROCEDURE sp_eliminar_orden_compra TO 'vnunez';
+
+GRANT EXECUTE ON PROCEDURE sp_insertar_pedido TO 'admin';
+GRANT EXECUTE ON PROCEDURE sp_actualizar_producto TO 'admin';
+GRANT EXECUTE ON PROCEDURE sp_eliminar_orden_compra TO 'admin';
+GRANT SELECT ON reporte_recordatorios_secretarias TO 'admin';
+GRANT SELECT ON reporte_productos_stock TO 'admin';
+GRANT SELECT ON reporte_ordenes_proveedores TO 'admin';
+GRANT SELECT ON reporte_pedidos_clientes TO 'admin';
+
