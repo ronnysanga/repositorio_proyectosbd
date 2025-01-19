@@ -285,3 +285,120 @@ UNLOCK TABLES;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2024-12-16 20:43:31
+
+-- Crear TRIGGERS
+
+-- Trigger para auditar inserciones en la tabla pedido
+DELIMITER $$
+CREATE TRIGGER after_insert_pedido
+AFTER INSERT ON pedido
+FOR EACH ROW
+BEGIN
+    INSERT INTO recordatorio (Titulo, NivelDeRelevancia, FechaMaxima, Descripcion, SecretariaCedula)
+    VALUES ('Nuevo Pedido', 'Alta', NOW() + INTERVAL 7 DAY, CONCAT('Pedido ID: ', NEW.idPedido, ' creado.'), 'SECRETARIA_1');
+END$$
+DELIMITER ;
+
+-- Trigger para evitar la creación de usuarios con una cédula ya existente
+DELIMITER $$
+CREATE TRIGGER before_insert_cliente
+BEFORE INSERT ON cliente
+FOR EACH ROW
+BEGIN
+    DECLARE existe INT;
+    SELECT COUNT(*) INTO existe FROM cliente WHERE Cedula = NEW.Cedula;
+    IF existe > 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ya existe un cliente con esta cédula.';
+    END IF;
+END$$
+DELIMITER ;
+
+-- VIEWS (REPORTES)
+
+-- Pedidos y clientes
+CREATE VIEW reporte_pedidos_clientes AS
+SELECT p.IdPedido AS PedidoId, p.FechaEntrega, p.ValorTotal, c.NombreCompleto AS Cliente
+FROM pedido p
+JOIN cliente c ON p.clienteID = c.idCliente;
+
+-- Órdenes de compra y proveedores
+CREATE VIEW reporte_ordenes_proveedores AS
+SELECT oc.idOrden AS OrdenCompraId, oc.FechaEmision, pr.NombreCompleto AS Proveedor, oc.ValorTotal
+FROM ordencompra oc
+JOIN proveedor pr ON oc.ProveedorId = pr.idProveedor;
+
+-- Productos y detalles de stock
+CREATE VIEW reporte_productos_stock AS
+SELECT p.idProducto AS ProductoId, p.Nombre, p.Descripcion, p.Cantidad, p.PrecioVenta
+FROM producto p;
+
+-- Recordatorios y secretarias
+CREATE VIEW reporte_recordatorios_secretarias AS
+SELECT r.idRecordatorio AS RecordatorioId, r.Titulo, r.FechaMax, r.Descripcion, s.NomCompleto AS Secretaria
+FROM recordatorio r
+JOIN secretaria s ON r.SecretariaCedula = s.Cedula;
+
+-- PROCEDIMIENTOS ALMACENADOS (SPs)
+
+-- SP para insertar pedidos
+DELIMITER //
+CREATE PROCEDURE sp_insertar_pedido (
+    IN p_clienteCedula CHAR(10),
+    IN p_fechaEntrega DATE,
+    IN p_valorTotal DECIMAL(10,2)
+)
+BEGIN
+    DECLARE cliente_existente INT;
+    -- Validar que el cliente existe
+    SELECT COUNT(*) INTO cliente_existente FROM cliente WHERE Cedula = p_clienteCedula;
+    IF cliente_existente = 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El cliente no existe';
+    ELSE
+        INSERT INTO pedido (ClienteCedula, FechaDeEntrega, ValorTotal) VALUES (p_clienteCedula, p_fechaEntrega, p_valorTotal);
+        COMMIT;
+    END IF;
+END //
+DELIMITER ;
+
+-- SP para actualizar productos
+DELIMITER //
+CREATE PROCEDURE sp_actualizar_producto (
+    IN p_idProducto INT,
+    IN p_nombre CHAR(50),
+    IN p_descripcion CHAR(255),
+    IN p_costo DECIMAL(10,2),
+    IN p_precioVenta DECIMAL(10,2),
+    IN p_cantidad INT
+)
+BEGIN
+    DECLARE producto_existente INT;
+    -- Validar que el producto existe
+    SELECT COUNT(*) INTO producto_existente FROM producto WHERE Id = p_idProducto;
+    IF producto_existente = 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El producto no existe';
+    ELSE
+        UPDATE producto 
+        SET Nombre = p_nombre, Descripcion = p_descripcion, Costo = p_costo, PrecioDeVenta = p_precioVenta, Cantidad = p_cantidad
+        WHERE Id = p_idProducto;
+        COMMIT;
+    END IF;
+END //
+DELIMITER ;
+
+-- SP para eliminar órdenes de compra
+DELIMITER //
+CREATE PROCEDURE sp_eliminar_orden_compra (
+    IN p_idOrden INT
+)
+BEGIN
+    DECLARE orden_existente INT;
+    -- Validar que la orden existe
+    SELECT COUNT(*) INTO orden_existente FROM ordencompra WHERE Id = p_idOrden;
+    IF orden_existente = 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La orden de compra no existe';
+    ELSE
+        DELETE FROM ordencompra WHERE Id = p_idOrden;
+        COMMIT;
+    END IF;
+END //
+DELIMITER ;
